@@ -8,7 +8,7 @@ try {
 
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-    $req = $db->query("SELECT * FROM article");
+    // $req = $db->query("SELECT * FROM article");
 
 } catch (PDOException $e) {
     echo "Erreur : " . $e->getMessage();
