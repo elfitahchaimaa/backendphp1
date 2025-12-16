@@ -1,18 +1,14 @@
 <?php
+session_start();
 require_once 'php/config.php';
 
-$id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+$id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+if ($id <= 0) {
+    header('Location: blog.php');
+    exit;
+}
 
-// if ($id <= 0) {
-//     header('Location: blog.php');
-//     exit;
-// }
-
-$sql = "SELECT a.id,
-               a.titre,
-               a.contenu,
-               a.date_creation,
-               a.status,
+$sql = "SELECT a.id, a.titre, a.contenu, a.date_creation, a.status,
                u.nom AS auteur,
                c.nom AS categorie
         FROM article a
@@ -20,7 +16,6 @@ $sql = "SELECT a.id,
         JOIN categories c ON a.idca = c.id
         WHERE a.id = :id
         LIMIT 1";
-
 $stmt = $db->prepare($sql);
 $stmt->execute([':id' => $id]);
 $article = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -29,19 +24,55 @@ if (!$article) {
     header('Location: blog.php');
     exit;
 }
+
+$commentErrors = [];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_comment'])) {
+    if (empty($_SESSION['user'])) {
+        $commentErrors[] = "Vous devez être connecté pour commenter.";
+    } else {
+        $contenu = trim($_POST['contenu'] ?? '');
+        $idu = (int)$_SESSION['user']['id'];
+        $ida = (int)$article['id'];
+
+        if ($contenu === '') {
+            $commentErrors[] = 'Commentaire vide';
+        }
+
+        if (!$commentErrors) {
+            $ins = $db->prepare("INSERT INTO commantaire (contenu, idu, ida, created_at, UPDATED_at, status)
+                                 VALUES (:contenu, :idu, :ida, CURDATE(), CURDATE(), :status)");
+            $ins->execute([
+                ':contenu' => $contenu,
+                ':idu' => $idu,
+                ':ida' => $ida,
+                ':status' => 'approuve'
+            ]);
+            header("Location: single.php?id=" . $ida);
+            exit;
+        }
+    }
+}
+
+$sel = $db->prepare("SELECT cm.id, cm.contenu, cm.created_at, cm.status,
+                            u.nom AS auteur
+                     FROM commantaire cm
+                     JOIN utilisateur u ON cm.idu = u.id
+                     WHERE cm.ida = :ida
+                     ORDER BY cm.created_at DESC");
+$sel->execute([':ida' => (int)$article['id']]);
+$comments = $sel->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!doctype html>
 <html lang="en">
 
   <head>
-    <title><?= htmlspecialchars($article['titre']) ?></title>
+    <title><?= htmlspecialchars($article['titre']) ?> &mdash; Trips</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
     <link href="https://fonts.googleapis.com/css?family=Work+Sans:400,700,900&display=swap" rel="stylesheet">
-
     <link rel="stylesheet" href="fonts/icomoon/style.css">
-
     <link rel="stylesheet" href="css/bootstrap.min.css">
     <link rel="stylesheet" href="css/bootstrap-datepicker.css">
     <link rel="stylesheet" href="css/jquery.fancybox.min.css">
@@ -49,14 +80,11 @@ if (!$article) {
     <link rel="stylesheet" href="css/owl.theme.default.min.css">
     <link rel="stylesheet" href="fonts/flaticon/font/flaticon.css">
     <link rel="stylesheet" href="css/aos.css">
-
     <link rel="stylesheet" href="css/style.css">
-
   </head>
 
   <body data-spy="scroll" data-target=".site-navbar-target" data-offset="300">
 
-    
     <div class="site-wrap" id="home-section">
 
       <div class="site-mobile-menu site-navbar-target">
@@ -69,7 +97,6 @@ if (!$article) {
       </div>
 
       <header class="site-navbar site-navbar-target" role="banner">
-
         <div class="container">
           <div class="row align-items-center position-relative">
 
@@ -101,109 +128,95 @@ if (!$article) {
 
           </div>
         </div>
-
       </header>
 
-    <div class="ftco-blocks-cover-1">
-      <div class="site-section-cover overlay" style="background-image: url('images/hero_1.jpg')">
+      <div class="ftco-blocks-cover-1">
+        <div class="site-section-cover overlay" style="background-image: url('images/hero_1.jpg')">
+          <div class="container">
+            <div class="row align-items-center justify-content-center text-center">
+              <div class="col-md-8" data-aos="fade-up">
+                <h1 class="mb-3 text-white"><?= htmlspecialchars($article['titre']) ?></h1>
+                <p class="text-white mb-0">
+                  <?= htmlspecialchars($article['date_creation']) ?>
+                  <span class="mx-2">by</span> <?= htmlspecialchars($article['auteur']) ?>
+                  <span class="mx-2">in</span> <?= htmlspecialchars($article['categorie']) ?>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="site-section">
         <div class="container">
-          <div class="row align-items-center justify-content-center text-center">
-            <div class="col-md-7" data-aos="fade-up">
-              <h1 class="mb-3 text-white"><?= htmlspecialchars($article['titre']) ?></h1>
-              <p class="text-white">
-                <?= htmlspecialchars($article['date_creation']) ?>
-                <span class="mx-2">by</span>
-                <span><?= htmlspecialchars($article['auteur']) ?></span>
-                <span class="mx-2">in</span>
-                <span><?= htmlspecialchars($article['categorie']) ?></span>
-              </p>
+          <div class="row justify-content-center">
+            <div class="col-md-8">
+              <p><img src="images/img_1.jpg" alt="Image" class="img-fluid mb-4"></p>
+              <div class="blog-content">
+                <?= nl2br(htmlspecialchars($article['contenu'])) ?>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
+      <div class="site-section">
+        <div class="container">
+          <div class="row justify-content-center">
+            <div class="col-md-8">
 
-    <div class="site-section">
-      <div class="container">
-        <div class="row justify-content-center">
-          <div class="col-md-8">
-            <p>
-              <img src="images/img_1.jpg" alt="Image" class="img-fluid mb-4">
-            </p>
-            <div class="blog-content">
-              <?= nl2br(htmlspecialchars($article['contenu'])) ?>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+              <h3 class="mb-4">Commentaires</h3>
 
-    <footer class="site-footer bg-light">
-      <div class="container">
-        <div class="row">
-          <div class="col-lg-3">
-            <h2 class="footer-heading mb-3">Instagram</h2>
-            <div class="row">
-              <div class="col-4 gal_col">
-                <a href="#"><img src="images/insta_1.jpg" alt="Image" class="img-fluid"></a>
-              </div>
-              <div class="col-4 gal_col">
-                <a href="#"><img src="images/insta_2.jpg" alt="Image" class="img-fluid"></a>
-              </div>
-              <div class="col-4 gal_col">
-                <a href="#"><img src="images/insta_3.jpg" alt="Image" class="img-fluid"></a>
-              </div>
-              <div class="col-4 gal_col">
-                <a href="#"><img src="images/insta_4.jpg" alt="Image" class="img-fluid"></a>
-              </div>
-              <div class="col-4 gal_col">
-                <a href="#"><img src="images/insta_5.jpg" alt="Image" class="img-fluid"></a>
-              </div>
-              <div class="col-4 gal_col">
-                <a href="#"><img src="images/insta_6.jpg" alt="Image" class="img-fluid"></a>
-              </div>
-            </div>
-          </div>
-          <div class="col-lg-8 ml-auto">
-            <div class="row">
-              <div class="col-lg-6 ml-auto">
-                <h2 class="footer-heading mb-4">Quick Links</h2>
-                <ul class="list-unstyled">
-                  <li><a href="about.php">About Us</a></li>
-                  <li><a href="#">Testimonials</a></li>
-                  <li><a href="#">Terms of Service</a></li>
-                  <li><a href="#">Privacy</a></li>
-                  <li><a href="contact.php">Contact Us</a></li>
-                </ul>
-              </div>
-              <div class="col-lg-6">
-                <h2 class="footer-heading mb-4">Newsletter</h2>
-                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Nesciunt odio iure animi ullam quam, deleniti rem!</p>
-                <form action="#" class="d-flex" class="subscribe">
-                  <input type="text" class="form-control mr-3" placeholder="Email">
-                  <input type="submit" value="Send" class="btn btn-primary">
+              <?php if ($commentErrors): ?>
+                <div class="alert alert-danger">
+                  <?= implode('<br>', array_map('htmlspecialchars', $commentErrors)) ?>
+                </div>
+              <?php endif; ?>
+
+              <?php if (!empty($_SESSION['user'])): ?>
+                <form method="post" class="bg-light p-4 mb-4">
+                  <div class="form-group">
+                    <textarea name="contenu" class="form-control" rows="4" placeholder="Écrire un commentaire..."></textarea>
+                  </div>
+                  <button class="btn btn-primary" type="submit" name="add_comment" value="1">Publier</button>
                 </form>
-              </div>
-              
-            </div>
-          </div>
-        </div>
-        <div class="row pt-5 mt-5 text-center">
-          <div class="col-md-12">
-            <div class="border-top pt-5">
-              <p>
-            Copyright &copy;<script>document.write(new Date().getFullYear());</script>
-            All rights reserved | This template is made with
-            <i class="icon-heart text-danger" aria-hidden="true"></i> by
-            <a href="https://colorlib.com" target="_blank">Colorlib</a>
-            </p>
-            </div>
-          </div>
+              <?php else: ?>
+                <div class="alert alert-info">Connectez-vous pour écrire un commentaire.</div>
+              <?php endif; ?>
 
+              <?php if ($comments): ?>
+                <?php foreach ($comments as $c): ?>
+                  <div class="border p-3 mb-3 bg-white">
+                    <div class="small text-muted mb-2">
+                      <?= htmlspecialchars($c['auteur']) ?> — <?= htmlspecialchars($c['created_at']) ?>
+                    </div>
+                    <div><?= nl2br(htmlspecialchars($c['contenu'])) ?></div>
+                  </div>
+                <?php endforeach; ?>
+              <?php else: ?>
+                <p>Aucun commentaire.</p>
+              <?php endif; ?>
+
+            </div>
+          </div>
         </div>
       </div>
-    </footer>
+
+      <footer class="site-footer bg-light">
+        <div class="container">
+          <div class="row pt-5 mt-5 text-center">
+            <div class="col-md-12">
+              <div class="border-top pt-5">
+                <p>
+                  Copyright &copy;<script>document.write(new Date().getFullYear());</script>
+                  All rights reserved | This template is made with <i class="icon-heart text-danger" aria-hidden="true"></i>
+                  by <a href="https://colorlib.com" target="_blank">Colorlib</a>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </footer>
 
     </div>
 
@@ -221,9 +234,7 @@ if (!$article) {
     <script src="js/bootstrap-datepicker.min.js"></script>
     <script src="js/isotope.pkgd.min.js"></script>
     <script src="js/aos.js"></script>
-
     <script src="js/main.js"></script>
 
   </body>
-
 </html>
