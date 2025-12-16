@@ -1,3 +1,21 @@
+<?php
+require_once 'php/config.php';
+
+$sql = "SELECT a.id,
+               a.titre,
+               a.contenu,
+               a.date_creation,
+               a.status,
+               u.nom AS auteur,
+               c.nom AS categorie
+        FROM article a
+        JOIN utilisateur u ON a.idutil = u.id
+        JOIN categories c ON a.idca = c.id
+        ORDER BY a.date_creation DESC";
+
+$stmt = $db->query($sql);
+$articles = $stmt->fetchAll(PDO::FETCH_ASSOC);
+?>
 <!doctype html>
 <html lang="en">
 
@@ -18,7 +36,6 @@
     <link rel="stylesheet" href="fonts/flaticon/font/flaticon.css">
     <link rel="stylesheet" href="css/aos.css">
 
-    <!-- MAIN CSS -->
     <link rel="stylesheet" href="css/style.css">
 
   </head>
@@ -37,8 +54,6 @@
         <div class="site-mobile-menu-body"></div>
       </div>
 
-
-
       <header class="site-navbar site-navbar-target" role="banner">
 
         <div class="container">
@@ -46,31 +61,30 @@
 
             <div class="col-3 ">
               <div class="site-logo">
-                <a href="index.html" class="font-weight-bold">
+                <a href="index.php" class="font-weight-bold">
                   <img src="images/logo.png" alt="Image" class="img-fluid">
                 </a>
               </div>
             </div>
 
             <div class="col-9  text-right">
-              
-
-              <span class="d-inline-block d-lg-none"><a href="#" class="text-white site-menu-toggle js-menu-toggle py-5 text-white"><span class="icon-menu h3 text-white"></span></a></span>
-
-              
+              <span class="d-inline-block d-lg-none">
+                <a href="#" class="text-white site-menu-toggle js-menu-toggle py-5 text-white">
+                  <span class="icon-menu h3 text-white"></span>
+                </a>
+              </span>
 
               <nav class="site-navigation text-right ml-auto d-none d-lg-block" role="navigation">
                 <ul class="site-menu main-menu js-clone-nav ml-auto ">
-                  <li><a href="index.html" class="nav-link">Home</a></li>
-                  <li><a href="about.html" class="nav-link">About</a></li>
-                  <li><a href="trips.html" class="nav-link">Trips</a></li>
-                  <li class="active"><a href="blog.html" class="nav-link">Blog</a></li>
-                  <li><a href="contact.html" class="nav-link">Contact</a></li>
+                  <li><a href="index.php" class="nav-link">Home</a></li>
+                  <li><a href="about.php" class="nav-link">About</a></li>
+                  <li><a href="trips.php" class="nav-link">Trips</a></li>
+                  <li class="active"><a href="blog.php" class="nav-link">Blog</a></li>
+                  <li><a href="contact.php" class="nav-link">Contact</a></li>
                 </ul>
               </nav>
             </div>
 
-            
           </div>
         </div>
 
@@ -83,7 +97,6 @@
             <div class="col-md-5" data-aos="fade-up">
               <h1 class="mb-3 text-white">Our Blog</h1>
               <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Soluta veritatis in tenetur doloremque, maiores doloribus officia iste. Dolores.</p>
-              
             </div>
           </div>
         </div>
@@ -93,99 +106,43 @@
 
     <div class="site-section">
       <div class="container">
-
-       
         <div class="row">
-          <div class="col-lg-4 col-md-6 mb-4">
-            <div class="post-entry-1 h-100">
-              <a href="single.html">
-                <img src="images/img_1.jpg" alt="Image"
-                 class="img-fluid">
-              </a>
-              <div class="post-entry-1-contents">
-                
-                <h2><a href="single.html">Lorem ipsum dolor sit amet</a></h2>
-                <span class="meta d-inline-block mb-3">July 17, 2019 <span class="mx-2">by</span> <a href="#">Admin</a></span>
-                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Dolores eos soluta, dolore harum molestias consectetur.</p>
+          <?php if (!empty($articles)): ?>
+            <?php foreach ($articles as $article): ?>
+              <div class="col-lg-4 col-md-6 mb-4">
+                <div class="post-entry-1 h-100">
+                  <a href="single.php?id=<?= htmlspecialchars($article['id']) ?>">
+                    <img src="images/img_1.jpg" alt="Image" class="img-fluid">
+                  </a>
+                  <div class="post-entry-1-contents">
+                    <h2>
+                      <a href="single.php?id=<?= htmlspecialchars($article['id']) ?>">
+                        <?= htmlspecialchars($article['titre']) ?>
+                      </a>
+                    </h2>
+                    <span class="meta d-inline-block mb-3">
+                      <?= htmlspecialchars($article['date_creation']) ?>
+                      <span class="mx-2">by</span>
+                      <a href="#"><?= htmlspecialchars($article['auteur']) ?></a>
+                      <span class="mx-2">in</span>
+                      <span><?= htmlspecialchars($article['categorie']) ?></span>
+                    </span>
+                    <p>
+                      <?php
+                        $extrait = mb_substr($article['contenu'], 0, 150) . '...';
+                        echo htmlspecialchars($extrait);
+                      ?>
+                    </p>
+                  </div>
+                </div>
               </div>
+            <?php endforeach; ?>
+          <?php else: ?>
+            <div class="col-12">
+              <p>Aucun article pour le moment.</p>
             </div>
-          </div>
-          <div class="col-lg-4 col-md-6 mb-4">
-            <div class="post-entry-1 h-100">
-              <a href="single.html">
-                <img src="images/img_2.jpg" alt="Image"
-                 class="img-fluid">
-              </a>
-              <div class="post-entry-1-contents">
-                
-                <h2><a href="single.html">Lorem ipsum dolor sit amet</a></h2>
-                <span class="meta d-inline-block mb-3">July 17, 2019 <span class="mx-2">by</span> <a href="#">Admin</a></span>
-                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Dolores eos soluta, dolore harum molestias consectetur.</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="col-lg-4 col-md-6 mb-4">
-            <div class="post-entry-1 h-100">
-              <a href="single.html">
-                <img src="images/img_3.jpg" alt="Image"
-                 class="img-fluid">
-              </a>
-              <div class="post-entry-1-contents">
-                
-                <h2><a href="single.html">Lorem ipsum dolor sit amet</a></h2>
-                <span class="meta d-inline-block mb-3">July 17, 2019 <span class="mx-2">by</span> <a href="#">Admin</a></span>
-                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Dolores eos soluta, dolore harum molestias consectetur.</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="col-lg-4 col-md-6 mb-4">
-            <div class="post-entry-1 h-100">
-              <a href="single.html">
-                <img src="images/img_1.jpg" alt="Image"
-                 class="img-fluid">
-              </a>
-              <div class="post-entry-1-contents">
-                
-                <h2><a href="single.html">Lorem ipsum dolor sit amet</a></h2>
-                <span class="meta d-inline-block mb-3">July 17, 2019 <span class="mx-2">by</span> <a href="#">Admin</a></span>
-                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Dolores eos soluta, dolore harum molestias consectetur.</p>
-              </div>
-            </div>
-          </div>
-          <div class="col-lg-4 col-md-6 mb-4">
-            <div class="post-entry-1 h-100">
-              <a href="single.html">
-                <img src="images/img_2.jpg" alt="Image"
-                 class="img-fluid">
-              </a>
-              <div class="post-entry-1-contents">
-                
-                <h2><a href="single.html">Lorem ipsum dolor sit amet</a></h2>
-                <span class="meta d-inline-block mb-3">July 17, 2019 <span class="mx-2">by</span> <a href="#">Admin</a></span>
-                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Dolores eos soluta, dolore harum molestias consectetur.</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="col-lg-4 col-md-6 mb-4">
-            <div class="post-entry-1 h-100">
-              <a href="single.html">
-                <img src="images/img_3.jpg" alt="Image"
-                 class="img-fluid">
-              </a>
-              <div class="post-entry-1-contents">
-                
-                <h2><a href="single.html">Lorem ipsum dolor sit amet</a></h2>
-                <span class="meta d-inline-block mb-3">July 17, 2019 <span class="mx-2">by</span> <a href="#">Admin</a></span>
-                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Dolores eos soluta, dolore harum molestias consectetur.</p>
-              </div>
-            </div>
-          </div>
-
+          <?php endif; ?>
         </div>
-
         
         <div class="col-12 mt-5 text-center">
           <span class="p-3">1</span>
@@ -195,7 +152,7 @@
         </div>
         
       </div>
-    </div> <!-- END .site-section -->
+    </div>
 
     <footer class="site-footer bg-light">
       <div class="container">
@@ -251,9 +208,10 @@
           <div class="col-md-12">
             <div class="border-top pt-5">
               <p>
-            <!-- Link back to Colorlib can't be removed. Template is licensed under CC BY 3.0. -->
-            Copyright &copy;<script>document.write(new Date().getFullYear());</script> All rights reserved | This template is made with <i class="icon-heart text-danger" aria-hidden="true"></i> by <a href="https://colorlib.com" target="_blank" >Colorlib</a>
-            <!-- Link back to Colorlib can't be removed. Template is licensed under CC BY 3.0. -->
+            Copyright &copy;<script>document.write(new Date().getFullYear());</script>
+            All rights reserved | This template is made with
+            <i class="icon-heart text-danger" aria-hidden="true"></i> by
+            <a href="https://colorlib.com" target="_blank">Colorlib</a>
             </p>
             </div>
           </div>
@@ -284,4 +242,3 @@
   </body>
 
 </html>
-
