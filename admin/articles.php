@@ -7,22 +7,22 @@ $sql = "SELECT a.id, a.titre, a.date_creation, a.status,
         JOIN utilisateur u ON a.idutil = u.id
         JOIN categories c ON a.idca = c.id
         ORDER BY a.date_creation DESC";
-$stmt = $db->query($sql);
-$articles = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$articles = $db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+
+$pageTitle = 'Articles';
+$activePage = 'articles';
+require 'partials/header.php';
 ?>
-<!doctype html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8">
-  <title>Admin - Articles</title>
-  <link rel="stylesheet" href="../css/bootstrap.min.css">
-</head>
-<body class="p-4">
-  <div class="container">
-    <h1 class="mb-4">Gestion des articles</h1>
-    <a href="article_add.php" class="btn btn-primary mb-3">Ajouter un article</a>
-    <table class="table table-bordered table-striped">
-      <thead>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="mb-0">Articles</h1>
+  <a href="article_add.php" class="btn btn-primary">Ajouter</a>
+</div>
+
+<div class="card">
+  <div class="card-body p-0">
+    <table class="table table-striped table-hover mb-0">
+      <thead class="table-dark">
         <tr>
           <th>ID</th>
           <th>Titre</th>
@@ -34,26 +34,23 @@ $articles = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </tr>
       </thead>
       <tbody>
-      <?php foreach ($articles as $article): ?>
+      <?php foreach ($articles as $a): ?>
         <tr>
-          <td><?= htmlspecialchars($article['id']) ?></td>
-          <td><?= htmlspecialchars($article['titre']) ?></td>
-          <td><?= htmlspecialchars($article['auteur']) ?></td>
-          <td><?= htmlspecialchars($article['categorie']) ?></td>
-          <td><?= htmlspecialchars($article['date_creation']) ?></td>
-          <td><?= htmlspecialchars($article['status']) ?></td>
+          <td><?= (int)$a['id'] ?></td>
+          <td><?= htmlspecialchars($a['titre']) ?></td>
+          <td><?= htmlspecialchars($a['auteur']) ?></td>
+          <td><?= htmlspecialchars($a['categorie']) ?></td>
+          <td><?= htmlspecialchars($a['date_creation']) ?></td>
+          <td><?= htmlspecialchars($a['status']) ?></td>
           <td>
-            <a href="article_edit.php?id=<?= (int)$article['id'] ?>" class="btn btn-sm btn-warning">Modifier</a>
-            <a href="article_delete.php?id=<?= (int)$article['id'] ?>"
-               class="btn btn-sm btn-danger"
-               onclick="return confirm('Supprimer cet article ?');">
-               Supprimer
-            </a>
+            <a class="btn btn-sm btn-warning" href="article_edit.php?id=<?= (int)$a['id'] ?>">Modifier</a>
+            <a class="btn btn-sm btn-danger" href="article_delete.php?id=<?= (int)$a['id'] ?>" onclick="return confirm('Supprimer ?');">Supprimer</a>
           </td>
         </tr>
       <?php endforeach; ?>
       </tbody>
     </table>
   </div>
-</body>
-</html>
+</div>
+
+<?php require 'partials/footer.php'; ?>
