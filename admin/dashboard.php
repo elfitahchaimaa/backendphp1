@@ -1,4 +1,9 @@
 <?php
+session_start();
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+    header('Location: ../contact.php');
+    exit();
+}
 require_once '../php/config.php';
 
 $articlesTotal = (int)$db->query("SELECT COUNT(*) FROM article")->fetchColumn();
@@ -12,12 +17,24 @@ $commentsApprouves = (int)$db->query("SELECT COUNT(*) FROM commantaire WHERE sta
 $usersTotal = (int)$db->query("SELECT COUNT(*) FROM utilisateur")->fetchColumn();
 $adminsTotal = (int)$db->query("SELECT COUNT(*) FROM utilisateur WHERE role = 'admin'")->fetchColumn();
 
-$pageTitle = 'Dashboard';
+$pageTitle = 'Dashboard Admin';
 $activePage = 'dashboard';
 require 'partials/header.php';
 ?>
 
-<h1 class="mb-4">Dashboard</h1>
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="mb-0">Dashboard Admin</h1>
+  <div>
+    <span class="me-3 text-muted">
+      <i class="bi bi-person-circle"></i> 
+      <?php echo htmlspecialchars($_SESSION['username']); ?> 
+      (<?php echo htmlspecialchars($_SESSION['role']); ?>)
+    </span>
+    <a href="../logout.php" class="btn btn-danger btn-sm">
+      <i class="bi bi-box-arrow-right"></i> Déconnexion
+    </a>
+  </div>
+</div>
 
 <div class="row g-3 mb-4">
   <div class="col-md-4">
@@ -92,5 +109,16 @@ require 'partials/header.php';
   </div>
 </div>
 
+<div class="card mt-4">
+  <div class="card-body">
+    <h5 class="card-title">Actions rapides</h5>
+    <div class="btn-group" role="group">
+      <a href="articles.php" class="btn btn-primary">Gérer les articles</a>
+      <a href="comments.php" class="btn btn-success">Gérer les commentaires</a>
+      <a href="users.php" class="btn btn-info">Gérer les utilisateurs</a>
+      <a href="../logout.php" class="btn btn-danger">Se déconnecter</a>
+    </div>
+  </div>
+</div>
+
 <?php require 'partials/footer.php'; ?>
-*

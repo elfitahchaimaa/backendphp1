@@ -1,8 +1,76 @@
+<?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+session_start();
+require_once 'php/config.php';
+
+// Vérifier si déjà connecté
+if (isset($_SESSION['user_id']) && isset($_SESSION['role'])) {
+    if ($_SESSION['role'] === 'admin') {
+        header('Location: admin/dashboard.php');
+        exit();
+    } elseif ($_SESSION['role'] === 'auteur') {
+        header('Location: author/dashboard.php');
+        exit();
+    }
+}
+
+$error = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $email = trim($_POST['email'] ?? '');
+    $password = trim($_POST['password'] ?? '');
+    
+    if (!empty($email) && !empty($password)) {
+        try {
+            // Récupérer l'utilisateur par email
+            $stmt = $db->prepare("SELECT * FROM utilisateur WHERE email = ?");
+            $stmt->execute([$email]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($user) {
+                // Vérifier le mot de passe avec Bcrypt
+                if (password_verify($password, $user['mot_de_passe'])) {
+                    // Vérifier que c'est admin ou auteur
+                    if (in_array($user['role'], ['admin', 'auteur'])) {
+                        // ✅ CRÉER LES SESSIONS AVEC LES BONS NOMS
+                        $_SESSION['user_id'] = $user['id'];
+                        $_SESSION['username'] = $user['nom'];  // 👈 "username" pas "user_name"
+                        $_SESSION['email'] = $user['email'];
+                        $_SESSION['role'] = $user['role'];     // 👈 "role" pas "user_role"
+                        
+                        // Redirection selon le rôle
+                        if ($user['role'] === 'admin') {
+                            header('Location: admin/dashboard.php');
+                            exit();
+                        } else {
+                            header('Location: author/dashboard.php');
+                            exit();
+                        }
+                    } else {
+                        $error = "Accès réservé aux administrateurs et auteurs uniquement";
+                    }
+                } else {
+                    $error = "Email ou mot de passe incorrect";
+                }
+            } else {
+                $error = "Email ou mot de passe incorrect";
+            }
+        } catch (Exception $e) {
+            $error = "Erreur de connexion : " . $e->getMessage();
+        }
+    } else {
+        $error = "Veuillez remplir tous les champs";
+    }
+}
+?>
+
 <!doctype html>
-<html lang="en">
+<html lang="fr">
 
   <head>
-    <title>Trips &mdash; Website Template by Colorlib</title>
+    <title>Trips &mdash; Connexion</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
@@ -37,8 +105,6 @@
         <div class="site-mobile-menu-body"></div>
       </div>
 
-
-
       <header class="site-navbar site-navbar-target" role="banner">
 
         <div class="container">
@@ -65,7 +131,7 @@
                   <li><a href="about.html" class="nav-link">About</a></li>
                   <li><a href="trips.html" class="nav-link">Trips</a></li>
                   <li><a href="blog.html" class="nav-link">Blog</a></li>
-                  <li class="active"><a href="contact.html" class="nav-link">Contact</a></li>
+                  <li class="active"><a href="contact.php" class="nav-link">Connexion</a></li>
                 </ul>
               </nav>
             </div>
@@ -81,8 +147,8 @@
         <div class="container">
           <div class="row align-items-center justify-content-center text-center">
             <div class="col-md-5" data-aos="fade-up">
-              <h1 class="mb-3 text-white">Get In Touch</h1>
-              <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Soluta veritatis in tenetur doloremque, maiores doloribus officia iste. Dolores.</p>
+              <h1 class="mb-3 text-white">Connexion</h1>
+              <p>Accédez à votre espace personnel.</p>
               
             </div>
           </div>
@@ -97,53 +163,84 @@
         <div class="row justify-content-center text-center mb-5">
           <div class="col-md-10">
             <div class="heading-39101 mb-5">
-              <span class="backdrop text-center">Contact</span>
-              <span class="subtitle-39191">Contact Us</span>
-              <h3>Contact Us</h3>
+              <span class="backdrop text-center">Login</span>
+              <span class="subtitle-39191">Se connecter</span>
+              <h3>Connexion au système</h3>
             </div>
           </div>
         </div>
        
         <div class="row">
           <div class="col-lg-8 mb-5" >
-            <form action="#" method="post">
+            <form action="" method="post">
               <div class="form-group row">
                 <div class="col-md-6 mb-4 mb-lg-0">
-                  <input type="text" class="form-control" placeholder="First name">
+                  <input type="email" class="form-control" name="email" placeholder="Adresse email" required value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>">
                 </div>
                 <div class="col-md-6">
-                  <input type="text" class="form-control" placeholder="First name">
+                  <input type="password" class="form-control" name="password" placeholder="Mot de passe" required>
                 </div>
               </div>
 
+              <?php if (!empty($error)): ?>
               <div class="form-group row">
                 <div class="col-md-12">
-                  <input type="text" class="form-control" placeholder="Email address">
+                  <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <strong>❌ Erreur :</strong> <?php echo htmlspecialchars($error); ?>
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                    </button>
+                  </div>
                 </div>
               </div>
+              <?php endif; ?>
 
-              <div class="form-group row">
-                <div class="col-md-12">
-                  <textarea name="" id="" class="form-control" placeholder="Write your message." cols="30" rows="10"></textarea>
-                </div>
-              </div>
               <div class="form-group row">
                 <div class="col-md-6 mr-auto">
-                  <input type="submit" class="btn btn-block btn-primary text-white py-3 px-5" value="Send Message">
+                  <input type="submit" class="btn btn-block btn-primary text-white py-3 px-5" value="Se connecter">
+                </div>
+                <div class="col-md-6">
+                  <a href="index.html" class="btn btn-block btn-secondary text-white py-3 px-5">Retour à l'accueil</a>
+                </div>
+              </div>
+              
+              <div class="form-group row mt-3">
+                <div class="col-md-12 text-center">
+                  <small class="text-muted">
+                    🔒 Sécurisé avec Bcrypt | Le système détecte automatiquement votre rôle
+                  </small>
                 </div>
               </div>
             </form>
           </div>
           <div class="col-lg-4 ml-auto">
             <div class="bg-white p-3 p-md-5">
-              <h3 class="text-black mb-4">Contact Info</h3>
+              <h3 class="text-black mb-4">📋 Informations de connexion</h3>
               <ul class="list-unstyled footer-link">
                 <li class="d-block mb-3">
-                  <span class="d-block text-black">Address:</span>
-                  <span>34 Street Name, City Name Here, United States</span></li>
-                <li class="d-block mb-3"><span class="d-block text-black">Phone:</span><span>+1 242 4942 290</span></li>
-                <li class="d-block mb-3"><span class="d-block text-black">Email:</span><span>info@yourdomain.com</span></li>
+                  <span class="d-block text-black">👨‍💼 Compte Admin:</span>
+                  <span><strong>admin@example.com</strong></span>
+                </li>
+                <li class="d-block mb-3">
+                  <span class="d-block text-black">✍️ Compte Auteur:</span>
+                  <span><strong>auteur@example.com</strong></span>
+                </li>
+                <li class="d-block mb-3">
+                  <span class="d-block text-black">🔑 Mot de passe:</span>
+                  <span><strong>admin123</strong> / <strong>auteur123</strong></span>
+                </li>
+                <li class="d-block mb-3">
+                  <span class="d-block text-black">💬 Support:</span>
+                  <span>support@example.com</span>
+                </li>
               </ul>
+              
+              <div class="mt-4 p-3" style="background: #d4edda; border-left: 4px solid #28a745;">
+                <h5 class="text-dark">🔐 Sécurité</h5>
+                <p class="small mb-0">
+                  Authentification sécurisée avec <strong>Bcrypt</strong>
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -285,9 +382,7 @@
           <div class="col-md-12">
             <div class="border-top pt-5">
               <p>
-            <!-- Link back to Colorlib can't be removed. Template is licensed under CC BY 3.0. -->
             Copyright &copy;<script>document.write(new Date().getFullYear());</script> All rights reserved | This template is made with <i class="icon-heart text-danger" aria-hidden="true"></i> by <a href="https://colorlib.com" target="_blank" >Colorlib</a>
-            <!-- Link back to Colorlib can't be removed. Template is licensed under CC BY 3.0. -->
             </p>
             </div>
           </div>
@@ -318,4 +413,3 @@
   </body>
 
 </html>
-
